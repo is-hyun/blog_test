@@ -1,5 +1,6 @@
 package com.tenco.blog_test.board;
 
+import com.tenco.blog_test.user.User;
 import com.tenco.blog_test.util.MyDateUtil;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -23,23 +24,28 @@ public class Board {
 
     private String title;
     private String content;
-    private String username;
+
+    // 외래키 사용을 위해 User 객체를 필드로 선언
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @CreationTimestamp
     private Timestamp createdAt;
 
     // 비즈니스 로직을 위한 생성자
     @Builder
-    public Board(String title, String content, String username) {
+    public Board(String title, String content, User user) {
         this.title = title;
         this.content = content;
-        this.username = username;
+        this.user = user;
     }
 
     // 시간 포맷 메서드
     public String getTime() {
         return MyDateUtil.timestampFormat(createdAt);
     }
+
     // 자신의 상태값을 변경하는 메서드 추가 (영속성 엔티티를 수정하는 메서드)
     public void update(BoardRequest.UpdateDto updateDto) {
         // 비즈니스 규칙 검증
