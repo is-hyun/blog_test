@@ -54,7 +54,7 @@ public class BoardController {
     public String save(BoardRequest.SaveDto reqDto) {
 
         // 1. DTO에서 Entity 클래스 타입으로 변환 해주어야 한다.
-//        TODO - username 수정 필요
+//        TODO - username 수정 필요 및 DTO 클래스로 이동 필요
 //        Board board = Board.builder()
 //                .title(reqDto.getTitle())
 //                .content(reqDto.getContent())
