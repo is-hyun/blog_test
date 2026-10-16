@@ -18,6 +18,10 @@
             </form>
         </div>
     </div>
+    {{! 에러 메시지 섹션 추가}}
+    {{#errorMessage}}
+        <div class="alert alert-danger m-3">{{errorMessage}}</div>
+    {{/errorMessage}}
 </div>
 
 {{> layout/footer}}

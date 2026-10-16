@@ -6,3 +6,8 @@ spring:
       expose-session-attributes: true
   profiles:
     active: local
+
+server:
+  servlet:
+    session:
+      tracking-modes: cookie
