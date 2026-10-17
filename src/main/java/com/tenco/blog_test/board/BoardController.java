@@ -1,5 +1,7 @@
 package com.tenco.blog_test.board;
 
+import com.tenco.blog_test.user.User;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
@@ -11,7 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import java.util.List;
 
 @Slf4j
-@RequiredArgsConstructor // [코드 추가]
+@RequiredArgsConstructor
 @Controller
 public class BoardController {
 
@@ -43,7 +45,12 @@ public class BoardController {
     // 게시글 작성
     // GET - http://localhost:8080/board/save
     @GetMapping("/board/save")
-    public String saveForm() {
+    public String saveForm(HttpSession session) {
+        // 1. 인증 검사 - 비로그인 사용자 접근 불가
+        User sessionUser = (User) session.getAttribute("sessionUser");
+        if (sessionUser == null) {
+            return "redirect:/login";
+        }
         return "board/save-form";
     }
 
@@ -51,19 +58,24 @@ public class BoardController {
     @PostMapping("/board/save")
     // Spring 폼 데이터를 객체로 변환하는 과정 (데이터 바인딩 메커니즘)
     // 폼 데이터 바인딩 : Spring이 HTTP  요청 파라미터를 객체로 자동 변환
-    public String save(BoardRequest.SaveDto reqDto) {
+    public String save(BoardRequest.SaveDto saveDto, HttpSession session) {
 
-        // 1. DTO에서 Entity 클래스 타입으로 변환 해주어야 한다.
-//        TODO - username 수정 필요 및 DTO 클래스로 이동 필요
-//        Board board = Board.builder()
-//                .title(reqDto.getTitle())
-//                .content(reqDto.getContent())
-//                .username(reqDto.getUsername())
-//                .build();
-//        //new Board(reqDto.getTitle(), reqDto.getContent(), reqDto.getUsername());
-//        Board boardEntity  = boardPersistRepository.save(board);
+        // 1. 인증 검사
+        User sessionUser = (User) session.getAttribute("sessionUser");
+        if (sessionUser == null) {
+            return "redirect:/login";
+        }
 
-        return "redirect:/";
+        // 2. 유효성 검사
+        try {
+            saveDto.validate();
+            Board board = saveDto.toEntity(sessionUser);
+            Board savedBoard = boardPersistRepository.save(board);
+            return "redirect:/" + savedBoard.getId();
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return "board/save-form";
+        }
     }
 
     // 게시글 수정
