@@ -55,4 +55,9 @@ public class Board {
         this.title = updateDto.getTitle();
         this.content = updateDto.getContent();
     }
+
+    // 게시글 권한 확인 메서드
+    public boolean isOwner(Long userId) {
+        return this.user.getId().equals(userId);
+    }
 }

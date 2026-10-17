@@ -9,6 +9,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 
@@ -56,8 +57,6 @@ public class BoardController {
 
     // POST - http://localhost:8080/board/save
     @PostMapping("/board/save")
-    // Spring 폼 데이터를 객체로 변환하는 과정 (데이터 바인딩 메커니즘)
-    // 폼 데이터 바인딩 : Spring이 HTTP  요청 파라미터를 객체로 자동 변환
     public String save(BoardRequest.SaveDto saveDto, HttpSession session) {
 
         // 1. 인증 검사
@@ -73,7 +72,7 @@ public class BoardController {
             Board savedBoard = boardPersistRepository.save(board);
             return "redirect:/" + savedBoard.getId();
         } catch (Exception e) {
-            log.error(e.getMessage());
+            log.error("게시글 등록 실패 : {}", e.getMessage());
             return "board/save-form";
         }
     }
@@ -99,10 +98,32 @@ public class BoardController {
 
     // 게시글 삭제
     @PostMapping("/board/{id}/delete")
-    public String delete(@PathVariable Long id) {
-        boardPersistRepository.deleteById(id);
-        // PRG 패턴
-        return "redirect:/";
+    public String delete(@PathVariable Long id, HttpSession session, RedirectAttributes rttr) {
+
+        // 1. 인증 검사 - 로그인
+        User sessionUser = (User) session.getAttribute("sessionUser");
+        if (sessionUser == null) {
+            return "redirect:/login";
+        }
+
+        try {
+            // 2. 삭제할 게시글 조회
+            Board boardEntity = boardPersistRepository.findById(id);
+
+            // 3. 권한 검사 - 사용자명 일치
+            if (!boardEntity.isOwner(sessionUser.getId())) {
+                throw new RuntimeException("삭제 권한이 없습니다");
+            }
+            boardPersistRepository.deleteById(id);
+            return "redirect:/";
+        } catch (Exception e) {
+            log.error("게시글 삭제 실패 : {}", e.getMessage());
+            // 리다이렉트에 의해 화면이 새로고침될 때
+            // 사라지는 에러 메시지 내용을 유지하기 위해 세션에 1회성 저장
+            // 화면 새로고침과 동시에 화면에 에러 메시지 출력 후 세션에서 데이터 삭제
+            rttr.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/board/" + id;
+        }
     }
 
 }
