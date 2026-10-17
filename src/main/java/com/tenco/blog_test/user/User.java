@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.sql.Timestamp;
@@ -24,6 +25,7 @@ public class User {
     @Column(unique = true)
     private String email;
 
+    @Setter
     private String password;
 
     @CreationTimestamp
@@ -34,5 +36,10 @@ public class User {
         this.username = username;
         this.password = password;
         this.email = email;
+    }
+
+    // 비밀번호 수정
+    public void update(String password) {
+        this.password = password;
     }
 }

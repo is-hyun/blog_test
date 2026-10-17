@@ -8,6 +8,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 
+import java.net.URI;
 import java.util.Map;
 
 @Controller
@@ -75,6 +76,9 @@ public class UserController {
                 throw new IllegalArgumentException("사용자명 또는 비밀번호가 올바르지 않습니다");
             }
 
+            // ! 객체 인스턴스에서 비밀번호 은닉
+            sessionUser.setPassword(null);
+
             // 세션에 로그인 정보 저장
             session.setAttribute("sessionUser", sessionUser);
             log.info("로그인 성공 | 사용자명 : {}", sessionUser.getUsername());
@@ -99,13 +103,49 @@ public class UserController {
         return "redirect:/";
     }
 
+    // D. 회원정보 수정
     // GET - http://localhost:8080/user/update
     @GetMapping("/user/update")
-    public String updateForm(Model model) {
+    public String updateForm(Model model, HttpSession session) {
 
-        // 뼈대용 임시 데이터
-        model.addAttribute("user",
-                Map.of("username", "김민수", "email", "abc@naver.com"));
+        // 1. 인증 검사 - 로그인
+        User sessionUser = (User) session.getAttribute("sessionUser");
+        if (sessionUser == null) {
+            return "redirect:/login";
+        }
+        User user = userPersistRepository.findById(sessionUser.getId());
+        model.addAttribute("user", user);
         return "user/update-form";
+    }
+
+    @PostMapping("/user/update")
+    public String update(UserRequest.UpdateDto updateDto, Model model, HttpSession session) {
+
+        // 1. 인증 검사 - 로그인
+        User sessionUser = (User) session.getAttribute("sessionUser");
+        if (sessionUser == null) {
+            return "redirect:/login";
+        }
+
+        try {
+            // 2. 권한 검사
+            User userEntity = userPersistRepository.findById(sessionUser.getId());
+            if (userEntity == null) {
+                throw new IllegalArgumentException("사용자 정보를 불러올 수 없습니다");
+            }
+            // 3. 유효성 검사
+            updateDto.validate();
+
+            // 4. 세션 동기화
+            User updateUser = userPersistRepository.updatedById(sessionUser.getId(), updateDto);
+            updateUser.setPassword(null);
+
+            return "redirect:/";
+        } catch (Exception e) {
+            log.error("회원 정보 수정 실패 : {}", e.getMessage());
+            model.addAttribute("user", userPersistRepository.findById(sessionUser.getId()));
+            model.addAttribute("errorMessage", e.getMessage());
+            return "user/update-form";
+        }
     }
 }

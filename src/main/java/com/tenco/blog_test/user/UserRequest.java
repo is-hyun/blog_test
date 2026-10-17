@@ -53,4 +53,20 @@ public class UserRequest {
             }
         }
     }
+
+    // C. 회원정보 수정 DTO
+    @Data
+    public static class UpdateDto {
+        private String password;
+
+        // 검증 메서드
+        public void validate() {
+            if (password == null || password.trim().isEmpty()) {
+                throw new IllegalArgumentException("비밀번호는 필수 입력 사항입니다");
+            }
+            if (password.length() < 4) {
+                throw new IllegalArgumentException("비밀번호는 최소 4자 이상이어야 합니다");
+            }
+        }
+    }
 }
