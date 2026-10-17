@@ -80,20 +80,62 @@ public class BoardController {
     // 게시글 수정
     // GET http://localhost:8080/board/1/update
     @GetMapping("/board/{id}/update")
-    public String updateForm(@PathVariable Long id, Model model) {
+    public String updateForm(@PathVariable Long id,
+                             Model model, HttpSession session, RedirectAttributes rttr) {
+
+        // 1. 인증 검사 - 로그인
+        User sessionUser = (User) session.getAttribute("sessionUser");
+        if (sessionUser == null) {
+            return "redirect:/login";
+        }
+
+        // 2. 수정할 게시글 조회
         Board board = boardPersistRepository.findById(id);
-        model.addAttribute("board", board);
-        return "board/update-form";
+        try {
+            // 3. 권한 검사 - 사용자명 일치
+            if (!board.isOwner(sessionUser.getId())) {
+                throw new RuntimeException("수정 권한이 없습니다");
+            }
+            model.addAttribute("board", board);
+            return "board/update-form";
+        } catch (Exception e) {
+            log.error("게시글 수정 화면 진입 실패 : {}", e.getMessage());
+            rttr.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/board/" + id;
+        }
     }
 
     // POST http://localhost:8080/board/1/update (게시글 수정 기능 요청)
     @PostMapping("/board/{id}/update")
     public String update(@PathVariable Long id,
-                         BoardRequest.UpdateDto reqDto) {
-        reqDto.validate();
-        boardPersistRepository.updateById(id, reqDto);
+                         BoardRequest.UpdateDto updateDto, HttpSession session, Model model) {
 
-        return "redirect:/board/" + id;
+        // 1. 인증 검사 - 로그인
+        User sessionUser = (User) session.getAttribute("sessionUser");
+        if (sessionUser == null) {
+            return "redirect:/login";
+        }
+
+        // 2. 수정할 게시글 조회
+        Board boardEntity = boardPersistRepository.findById(id);
+        try {
+            // 3. 권한 검사 - 사용자명 일치
+            if (!boardEntity.isOwner(sessionUser.getId())) {
+                throw new RuntimeException("수정 권한이 없습니다");
+            }
+
+            // 4. 입력 데이터 검증
+            updateDto.validate();
+            // 5. 더티 체킹을 통한 수정
+            boardPersistRepository.updateById(id, updateDto);
+
+            return "redirect:/board/" + id;
+        } catch (Exception e) {
+            // 리다이렉트 미사용 -> model 사용 가능
+            model.addAttribute(boardEntity);
+            model.addAttribute("errorMessage", e.getMessage());
+            return "board/update-form";
+        }
     }
 
     // 게시글 삭제
